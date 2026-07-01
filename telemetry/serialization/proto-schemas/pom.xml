@@ -11,11 +11,6 @@
 
     <artifactId>proto-schemas</artifactId>
 
-    <properties>
-        <protobuf.version>3.25.1</protobuf.version>
-        <grpc.version>1.59.0</grpc.version>
-    </properties>
-
     <dependencies>
         <dependency>
             <groupId>io.grpc</groupId>
@@ -41,22 +36,25 @@
             </plugin>
 
             <plugin>
-                <groupId>org.xolstice.maven.plugins</groupId>
+                <groupId>io.github.ascopes</groupId>
                 <artifactId>protobuf-maven-plugin</artifactId>
-                <version>0.6.1</version>
+
                 <configuration>
-                    <protocArtifact>com.google.protobuf:protoc:${protobuf.version}:exe:windows-x86_64</protocArtifact>
-                    <pluginId>grpc-java</pluginId>
-                    <pluginArtifact>io.grpc:protoc-gen-grpc-java:${grpc.version}:exe:windows-x86_64</pluginArtifact>
-                    <protoSourceRoot>${project.basedir}/src/main/protobuf</protoSourceRoot>
-                    <outputDirectory>${project.build.directory}/generated-sources/protobuf</outputDirectory>
-                    <clearOutputDirectory>true</clearOutputDirectory>
+                    <protocVersion>${protobuf.version}</protocVersion>
+
+                    <binaryMavenPlugins>
+                        <binaryMavenPlugin>
+                            <groupId>io.grpc</groupId>
+                            <artifactId>protoc-gen-grpc-java</artifactId>
+                            <version>${grpc.version}</version>
+                        </binaryMavenPlugin>
+                    </binaryMavenPlugins>
                 </configuration>
+
                 <executions>
                     <execution>
                         <goals>
-                            <goal>compile</goal>
-                            <goal>compile-custom</goal>
+                            <goal>generate</goal>
                         </goals>
                     </execution>
                 </executions>
@@ -76,7 +74,6 @@
                         <configuration>
                             <sources>
                                 <source>${project.build.directory}/generated-sources/protobuf</source>
-                                <source>${project.build.directory}/generated-sources/protobuf/grpc</source>
                             </sources>
                         </configuration>
                     </execution>
