@@ -20,6 +20,7 @@ echo.
 java -jar "%JAR_PATH%" ^
   --hub-router.execution.mode=COLLECTION ^
   --hub-router.execution.collector.mode=grpc ^
+  --hub-router.execution.collector.grpc.port=59091 ^
   --hub-router.execution.immediate-logging.enabled=false ^
   --hub-router.execution.output.info-enabled=true ^
   --hub-router.execution.output.trace-enabled=true ^
