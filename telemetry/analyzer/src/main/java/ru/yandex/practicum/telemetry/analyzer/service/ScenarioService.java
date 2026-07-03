@@ -23,7 +23,7 @@ public class ScenarioService {
     private final HubRouterClient hubRouterClient;
 
     /**
-     * Обрабатывает снапшот: проверяет все сценарии для данного хаба
+     * Обрабатывает напшот: проверяет все сценарии для данного хаба
      * и отправляет действия для тех, чьи условия выполнены.
      */
     @Transactional
