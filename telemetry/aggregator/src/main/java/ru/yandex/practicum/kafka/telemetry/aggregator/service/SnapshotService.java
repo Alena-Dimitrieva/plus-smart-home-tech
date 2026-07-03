@@ -1,55 +1,55 @@
 package ru.yandex.practicum.kafka.telemetry.aggregator.service;
 
 import org.springframework.stereotype.Service;
-import ru.yandex.practicum.kafka.telemetry.event.*;
+import ru.yandex.practicum.kafka.telemetry.event.SensorEventAvro;
+import ru.yandex.practicum.kafka.telemetry.event.SensorStateAvro;
+import ru.yandex.practicum.kafka.telemetry.event.SensorsSnapshotAvro;
 
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class SnapshotService {
 
-    private final Map<String, SensorsSnapshotAvro> snapshots = new HashMap<>();
+    private final Map<String, SensorsSnapshotAvro> snapshots = new ConcurrentHashMap<>();
 
     public Optional<SensorsSnapshotAvro> updateState(SensorEventAvro event) {
+
         String hubId = event.getHubId();
         String sensorId = event.getId();
-        long eventTimestamp = event.getTimestamp();
+        Instant eventTime = Instant.ofEpochMilli(event.getTimestamp());
 
-        SensorsSnapshotAvro snapshot = snapshots.get(hubId);
-        if (snapshot == null) {
-            snapshot = SensorsSnapshotAvro.newBuilder()
-                    .setHubId(hubId)
-                    .setTimestamp(Instant.ofEpochMilli(eventTimestamp))
-                    .setSensorsState(new HashMap<>())
-                    .build();
-        }
+        SensorsSnapshotAvro current = snapshots.get(hubId);
 
-        Map<String, SensorStateAvro> states = new HashMap<>(snapshot.getSensorsState());
+        Map<String, SensorStateAvro> states =
+                current == null
+                        ? new HashMap<>()
+                        : new HashMap<>(current.getSensorsState());
 
-        SensorStateAvro oldState = states.get(sensorId);
-
-        if (oldState != null && oldState.getTimestamp().toEpochMilli() >= eventTimestamp) {
-            return Optional.empty();
-        }
+        SensorStateAvro old = states.get(sensorId);
 
         SensorStateAvro newState = SensorStateAvro.newBuilder()
-                .setTimestamp(Instant.ofEpochMilli(eventTimestamp))
+                .setTimestamp(eventTime)
                 .setData(event.getPayload())
                 .build();
 
+        if (old != null && old.equals(newState)) {
+            return Optional.empty();
+        }
+
         states.put(sensorId, newState);
 
-        SensorsSnapshotAvro updatedSnapshot = SensorsSnapshotAvro.newBuilder(snapshot)
+        SensorsSnapshotAvro updated = SensorsSnapshotAvro.newBuilder()
                 .setHubId(hubId)
+                .setTimestamp(eventTime)
                 .setSensorsState(states)
-                .setTimestamp(Instant.ofEpochMilli(eventTimestamp))
                 .build();
 
-        snapshots.put(hubId, updatedSnapshot);
+        snapshots.put(hubId, updated);
 
-        return Optional.of(updatedSnapshot);
+        return Optional.of(updated);
     }
 }
