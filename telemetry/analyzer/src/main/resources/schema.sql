@@ -32,7 +32,8 @@ CREATE TABLE IF NOT EXISTS scenario_conditions (
     id BIGSERIAL PRIMARY KEY,
     scenario_id BIGINT REFERENCES scenarios(id) ON DELETE CASCADE,
     sensor_id VARCHAR REFERENCES sensors(id) ON DELETE CASCADE,
-    condition_id BIGINT REFERENCES conditions(id) ON DELETE CASCADE
+    condition_id BIGINT REFERENCES conditions(id) ON DELETE CASCADE,
+    UNIQUE (scenario_id, sensor_id, condition_id)
 );
 
 -- Связующая таблица сценарий-действие (с суррогатным ключом)
@@ -40,7 +41,8 @@ CREATE TABLE IF NOT EXISTS scenario_actions (
     id BIGSERIAL PRIMARY KEY,
     scenario_id BIGINT REFERENCES scenarios(id) ON DELETE CASCADE,
     sensor_id VARCHAR REFERENCES sensors(id) ON DELETE CASCADE,
-    action_id BIGINT REFERENCES actions(id) ON DELETE CASCADE
+    action_id BIGINT REFERENCES actions(id) ON DELETE CASCADE,
+    UNIQUE (scenario_id, sensor_id, action_id)
 );
 
 -- Функция для проверки совпадения hub_id
