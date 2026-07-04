@@ -14,6 +14,9 @@ import ru.yandex.practicum.kafka.telemetry.event.SensorsSnapshotAvro;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Component
@@ -36,29 +39,18 @@ public class AggregationStarter {
 
     private volatile boolean running = true;
 
-    public void start() {
+    private final ExecutorService executor = Executors.newFixedThreadPool(2);
 
+    public void start() {
         log.info("Aggregator started");
 
-        Thread sensorsThread = new Thread(this::pollSensors);
-        sensorsThread.setName("sensors-consumer");
+        executor.submit(this::pollSensors);
+        executor.submit(this::pollHubs);
 
-        Thread hubsThread = new Thread(this::pollHubs);
-        hubsThread.setName("hubs-consumer");
-
-        sensorsThread.start();
-        hubsThread.start();
-
-        try {
-            sensorsThread.join();
-            hubsThread.join();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
+        Runtime.getRuntime().addShutdownHook(new Thread(this::stop));
     }
 
     private void pollSensors() {
-
         log.info("Sensors thread started");
 
         try (Consumer<String, SensorEventAvro> consumer =
@@ -72,15 +64,12 @@ public class AggregationStarter {
             log.info("Subscribed to {}", sensorsTopic);
 
             while (running) {
-
                 try {
                     ConsumerRecords<String, SensorEventAvro> records =
                             consumer.poll(Duration.ofMillis(500));
 
                     for (var record : records) {
-
                         SensorEventAvro event = record.value();
-
                         snapshotService.updateState(event)
                                 .ifPresent(snapshot -> {
                                     kafkaTemplate.send(
@@ -90,9 +79,7 @@ public class AggregationStarter {
                                     );
                                 });
                     }
-
                     consumer.commitSync();
-
                 } catch (Exception e) {
                     log.error("Error while processing sensor record", e);
                 }
@@ -101,12 +88,10 @@ public class AggregationStarter {
         } catch (Exception e) {
             log.error("Fatal error in sensors consumer", e);
         }
-
         log.info("Sensors thread finished");
     }
 
     private void pollHubs() {
-
         log.info("Hubs thread started");
 
         try (Consumer<String, HubEventAvro> consumer =
@@ -120,7 +105,6 @@ public class AggregationStarter {
             log.info("Subscribed to {}", hubsTopic);
 
             while (running) {
-
                 try {
                     ConsumerRecords<String, HubEventAvro> records =
                             consumer.poll(Duration.ofMillis(500));
@@ -128,9 +112,7 @@ public class AggregationStarter {
                     for (var record : records) {
                         log.debug("Hub event: {}", record.value());
                     }
-
                     consumer.commitSync();
-
                 } catch (Exception e) {
                     log.error("Error in hubs loop", e);
                 }
@@ -139,11 +121,25 @@ public class AggregationStarter {
         } catch (Exception e) {
             log.error("Fatal error in hubs consumer", e);
         }
-
         log.info("Hubs thread finished");
     }
 
     public void stop() {
+        log.info("Stopping Aggregator...");
         running = false;
+        executor.shutdown();
+        try {
+            if (!executor.awaitTermination(30, TimeUnit.SECONDS)) {
+                log.warn("Executor did not terminate in time, forcing shutdown...");
+                executor.shutdownNow();
+                if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
+                    log.error("Executor did not terminate even after force shutdown");
+                }
+            }
+        } catch (InterruptedException e) {
+            executor.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
+        log.info("Aggregator stopped");
     }
 }

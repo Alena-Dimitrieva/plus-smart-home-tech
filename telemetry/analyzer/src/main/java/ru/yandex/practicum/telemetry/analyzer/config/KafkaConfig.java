@@ -21,6 +21,12 @@ public class KafkaConfig {
     @Value("${spring.kafka.bootstrap-servers}")
     private String bootstrapServers;
 
+    @Value("${kafka.consumer.snapshot.auto-offset-reset:latest}")
+    private String snapshotAutoOffsetReset;
+
+    @Value("${kafka.consumer.hub.auto-offset-reset:earliest}")
+    private String hubAutoOffsetReset;
+
     @Bean
     public ConsumerFactory<String, SensorsSnapshotAvro> snapshotConsumerFactory() {
         Map<String, Object> props = new HashMap<>();
@@ -28,7 +34,7 @@ public class KafkaConfig {
         props.put(ConsumerConfig.GROUP_ID_CONFIG, "analyzer-snapshot-group");
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, SensorsSnapshotDeserializer.class);
-        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, snapshotAutoOffsetReset);
         props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
         return new DefaultKafkaConsumerFactory<>(props);
     }
@@ -40,7 +46,7 @@ public class KafkaConfig {
         props.put(ConsumerConfig.GROUP_ID_CONFIG, "analyzer-hub-group");
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, HubEventDeserializer.class);
-        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, hubAutoOffsetReset);
         props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
         return new DefaultKafkaConsumerFactory<>(props);
     }
