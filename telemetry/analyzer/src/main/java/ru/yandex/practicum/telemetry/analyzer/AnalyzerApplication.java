@@ -21,6 +21,6 @@ public class AnalyzerApplication {
         hubThread.setName("hub-event-processor");
         hubThread.start();
 
-        snapshotProcessor.start(); // в основном потоке
+        snapshotProcessor.start();
     }
 }
