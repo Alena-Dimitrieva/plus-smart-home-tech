@@ -5,18 +5,17 @@ import ru.yandex.practicum.dto.CartDto;
 
 import java.util.UUID;
 
-@RequestMapping("/api/v1/shopping-cart")
 public interface ShoppingCartApi {
 
-    @GetMapping("/{username}")
+    @GetMapping("/api/v1/shopping-cart/{username}")
     CartDto getCart(@PathVariable String username);
 
-    @PostMapping("/{username}/add")
+    @PostMapping("/api/v1/shopping-cart/{username}/add")
     CartDto addItem(@PathVariable String username, @RequestParam UUID productId, @RequestParam int quantity);
 
-    @PostMapping("/{username}/remove")
+    @PostMapping("/api/v1/shopping-cart/{username}/remove")
     CartDto removeItem(@PathVariable String username, @RequestParam UUID productId);
 
-    @PostMapping("/{username}/deactivate")
+    @PostMapping("/api/v1/shopping-cart/{username}/deactivate")
     boolean deactivateCart(@PathVariable String username);
 }

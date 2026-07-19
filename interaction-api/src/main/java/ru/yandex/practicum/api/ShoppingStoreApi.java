@@ -8,10 +8,9 @@ import ru.yandex.practicum.model.ProductCategory;
 
 import java.util.UUID;
 
-@RequestMapping("/api/v1/shopping-store")
 public interface ShoppingStoreApi {
 
-    @GetMapping
+    @GetMapping("/api/v1/shopping-store")
     PageProductDto getProducts(
             @RequestParam("category") ProductCategory category,
             @RequestParam(value = "page", defaultValue = "0") int page,
@@ -19,18 +18,18 @@ public interface ShoppingStoreApi {
             @RequestParam(value = "sort", defaultValue = "productName,asc") String[] sort
     );
 
-    @GetMapping("/{productId}")
+    @GetMapping("/api/v1/shopping-store/{productId}")
     ProductDto getProduct(@PathVariable UUID productId);
 
-    @PutMapping
+    @PutMapping("/api/v1/shopping-store")
     ProductDto createNewProduct(@RequestBody ProductDto productDto);
 
-    @PostMapping
+    @PostMapping("/api/v1/shopping-store")
     ProductDto updateProduct(@RequestBody ProductDto productDto);
 
-    @PostMapping("/removeProductFromStore")
+    @PostMapping("/api/v1/shopping-store/removeProductFromStore")
     boolean removeProductFromStore(@RequestBody UUID productId);
 
-    @PostMapping("/quantityState")
+    @PostMapping("/api/v1/shopping-store/quantityState")
     void setProductQuantityState(@RequestBody SetProductQuantityStateRequest request);
 }

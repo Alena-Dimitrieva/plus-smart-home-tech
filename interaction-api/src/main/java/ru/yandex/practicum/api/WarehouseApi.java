@@ -5,12 +5,11 @@ import ru.yandex.practicum.dto.AddressDto;
 import ru.yandex.practicum.dto.AvailabilityResponse;
 import ru.yandex.practicum.dto.CartDto;
 
-@RequestMapping("/api/v1/warehouse")
 public interface WarehouseApi {
 
-    @PostMapping("/check")
+    @PostMapping("/api/v1/warehouse/check")
     AvailabilityResponse checkAvailability(@RequestBody CartDto cart);
 
-    @GetMapping("/address")
+    @GetMapping("/api/v1/warehouse/address")
     AddressDto getWarehouseAddress();
 }
