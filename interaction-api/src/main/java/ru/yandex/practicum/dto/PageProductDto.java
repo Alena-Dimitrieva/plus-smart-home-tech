@@ -1,11 +1,12 @@
 package ru.yandex.practicum.dto;
 
 import lombok.Data;
+import java.util.ArrayList;
 import java.util.List;
 
 @Data
 public class PageProductDto {
-    private List<ProductDto> content;
+    private List<ProductDto> content = new ArrayList<>();
     private int totalPages;
     private long totalElements;
     private int number;

@@ -2,17 +2,15 @@ package ru.yandex.practicum.store.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.RestController;
 import ru.yandex.practicum.api.ShoppingStoreApi;
 import ru.yandex.practicum.dto.ProductDto;
 import ru.yandex.practicum.dto.SetProductQuantityStateRequest;
 import ru.yandex.practicum.dto.PageProductDto;
 import ru.yandex.practicum.model.ProductCategory;
+import ru.yandex.practicum.model.QuantityState;
 import ru.yandex.practicum.store.service.ProductService;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -46,18 +44,10 @@ public class ProductController implements ShoppingStoreApi {
     }
 
     @Override
-    public void setProductQuantityState(SetProductQuantityStateRequest request) {
-        productService.setProductQuantityState(request);
-    }
-
-    private Sort parseSort(String[] sortArray) {
-        List<Sort.Order> orders = new ArrayList<>();
-        for (String s : sortArray) {
-            String[] parts = s.split(",");
-            String property = parts[0];
-            Sort.Direction direction = (parts.length > 1 && "desc".equalsIgnoreCase(parts[1])) ? Sort.Direction.DESC : Sort.Direction.ASC;
-            orders.add(new Sort.Order(direction, property));
-        }
-        return Sort.by(orders);
+    public boolean setProductQuantityState(UUID productId, QuantityState quantityState) {   // <-- изменён возвращаемый тип и добавлен return
+        SetProductQuantityStateRequest request = new SetProductQuantityStateRequest();
+        request.setProductId(productId);
+        request.setQuantityState(quantityState);
+        return productService.setProductQuantityState(request);   // <-- возвращаем результат
     }
 }

@@ -6,6 +6,7 @@ import ru.yandex.practicum.api.WarehouseApi;
 import ru.yandex.practicum.dto.AddressDto;
 import ru.yandex.practicum.dto.AvailabilityResponse;
 import ru.yandex.practicum.dto.CartDto;
+import ru.yandex.practicum.dto.WarehouseProductDto;
 import ru.yandex.practicum.warehouse.service.WarehouseService;
 
 @RestController
@@ -21,5 +22,15 @@ public class WarehouseController implements WarehouseApi {
     @Override
     public AddressDto getWarehouseAddress() {
         return warehouseService.getWarehouseAddress();
+    }
+
+    @Override
+    public WarehouseProductDto addProduct(WarehouseProductDto product) {
+        return null;
+    }
+
+    @Override
+    public WarehouseProductDto addProductAlternative(WarehouseProductDto product) {
+        return null;
     }
 }

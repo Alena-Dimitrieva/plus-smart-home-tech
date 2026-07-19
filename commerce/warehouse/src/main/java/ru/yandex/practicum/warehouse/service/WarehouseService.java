@@ -27,7 +27,7 @@ public class WarehouseService {
         address.setCity(currentAddress);
         address.setStreet(currentAddress);
         address.setHouse(currentAddress);
-        address.setApartment(currentAddress);
+        address.setFlat(currentAddress);
         return address;
     }
 
@@ -82,9 +82,6 @@ public class WarehouseService {
         else if (q <= 100) state = QuantityState.ENOUGH;
         else state = QuantityState.MANY;
 
-        SetProductQuantityStateRequest request = new SetProductQuantityStateRequest();
-        request.setProductId(productId);
-        request.setQuantityState(state);
-        storeClient.setProductQuantityState(request);
+        storeClient.setProductQuantityState(productId, state);
     }
 }

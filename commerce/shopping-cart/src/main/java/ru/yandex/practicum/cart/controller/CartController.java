@@ -5,6 +5,7 @@ import org.springframework.web.bind.annotation.RestController;
 import ru.yandex.practicum.api.ShoppingCartApi;
 import ru.yandex.practicum.dto.CartDto;
 import ru.yandex.practicum.cart.service.CartService;
+import ru.yandex.practicum.dto.CartItemAddRequest;
 
 import java.util.UUID;
 
@@ -16,6 +17,16 @@ public class CartController implements ShoppingCartApi {
     @Override
     public CartDto getCart(String username) {
         return cartService.getCart(username);
+    }
+
+    @Override
+    public CartDto addItem(String username, CartItemAddRequest request) {
+        return null;
+    }
+
+    @Override
+    public CartDto changeQuantity(String username, UUID productId, int quantity) {
+        return null;
     }
 
     @Override

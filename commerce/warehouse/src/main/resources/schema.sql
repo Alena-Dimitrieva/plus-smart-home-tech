@@ -1,10 +1,9 @@
-CREATE TABLE IF NOT EXISTS products (
+CREATE TABLE IF NOT EXISTS warehouse_products (
     product_id UUID PRIMARY KEY,
-    product_name VARCHAR(255) NOT NULL,
-    description TEXT,
-    image_src VARCHAR(500),
-    quantity_state VARCHAR(20) NOT NULL,
-    product_state VARCHAR(20) NOT NULL,
-    product_category VARCHAR(20) NOT NULL,
-    price DECIMAL(10, 2) NOT NULL CHECK (price >= 1)
+    quantity INT NOT NULL DEFAULT 0,
+    width DECIMAL(10, 2) NOT NULL,
+    height DECIMAL(10, 2) NOT NULL,
+    depth DECIMAL(10, 2) NOT NULL,
+    weight DECIMAL(10, 2) NOT NULL,
+    fragile BOOLEAN NOT NULL DEFAULT FALSE
 );
