@@ -22,8 +22,6 @@ spring:
     properties:
       hibernate:
         format_sql: true
-  config:
-    import: "optional:configserver:"
 
 eureka:
   client:
