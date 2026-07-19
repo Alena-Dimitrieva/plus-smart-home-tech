@@ -1,46 +1,47 @@
 package ru.yandex.practicum.cart.controller;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.api.ShoppingCartApi;
 import ru.yandex.practicum.dto.CartDto;
-import ru.yandex.practicum.cart.service.CartService;
 import ru.yandex.practicum.dto.CartItemAddRequest;
+import ru.yandex.practicum.cart.service.CartService;
 
 import java.util.UUID;
 
 @RestController
+@RequestMapping("/api/v1/shopping-cart")
 @RequiredArgsConstructor
 public class CartController implements ShoppingCartApi {
     private final CartService cartService;
 
     @Override
-    public CartDto getCart(String username) {
+    @GetMapping
+    public CartDto getCart(@RequestParam String username) {
         return cartService.getCart(username);
     }
 
     @Override
-    public CartDto addItem(String username, CartItemAddRequest request) {
-        return null;
+    @PutMapping
+    public CartDto addItem(@RequestParam String username, @RequestBody CartItemAddRequest request) {
+        return cartService.addItem(username, request.getProductId(), request.getQuantity());
     }
 
     @Override
-    public CartDto changeQuantity(String username, UUID productId, int quantity) {
-        return null;
+    @PostMapping("/change-quantity")
+    public CartDto changeQuantity(@RequestParam String username, @RequestParam UUID productId, @RequestParam int quantity) {
+        return cartService.changeQuantity(username, productId, quantity); // если такого метода нет – добавьте
     }
 
     @Override
-    public CartDto addItem(String username, UUID productId, int quantity) {
-        return cartService.addItem(username, productId, quantity);
-    }
-
-    @Override
-    public CartDto removeItem(String username, UUID productId) {
+    @PostMapping("/remove")
+    public CartDto removeItem(@RequestParam String username, @RequestParam UUID productId) {
         return cartService.removeItem(username, productId);
     }
 
     @Override
-    public boolean deactivateCart(String username) {
+    @DeleteMapping
+    public boolean deactivateCart(@RequestParam String username) {
         return cartService.deactivateCart(username);
     }
 }

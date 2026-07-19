@@ -13,6 +13,8 @@
     <packaging>pom</packaging>
     <modules>
         <module>shopping-store</module>
+        <module>warehouse</module>
+        <module>shopping-cart</module>
     </modules>
 
 </project>

@@ -3,7 +3,7 @@ package ru.yandex.practicum.store.controller;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.api.ShoppingStoreApi;
 import ru.yandex.practicum.dto.ProductDto;
 import ru.yandex.practicum.dto.SetProductQuantityStateRequest;
@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
+@RequestMapping("/api/v1/shopping-store")
 @RequiredArgsConstructor
 public class ProductController implements ShoppingStoreApi {
     private final ProductService productService;
@@ -47,11 +48,11 @@ public class ProductController implements ShoppingStoreApi {
     }
 
     @Override
-    public void setProductQuantityState(UUID productId, QuantityState quantityState) {
+    public boolean setProductQuantityState(UUID productId, QuantityState quantityState) {
         SetProductQuantityStateRequest request = new SetProductQuantityStateRequest();
         request.setProductId(productId);
         request.setQuantityState(quantityState);
-        productService.setProductQuantityState(request);
+        return productService.setProductQuantityState(request);
     }
 
     private Sort parseSort(String[] sortArray) {

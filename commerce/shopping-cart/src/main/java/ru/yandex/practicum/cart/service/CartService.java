@@ -95,4 +95,23 @@ public class CartService {
         }).collect(Collectors.toList()));
         return dto;
     }
+
+    @Transactional
+    public CartDto changeQuantity(String username, UUID productId, int quantity) {
+        Cart cart = cartRepository.findByUsername(username)
+                .orElseThrow(() -> new NotFoundException("Cart not found for user: " + username));
+        if (!cart.isActive()) {
+            throw new IllegalStateException("Cart is deactivated");
+        }
+        CartItem item = cart.getItems().stream()
+                .filter(i -> i.getProductId().equals(productId))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Product not in cart"));
+        if (quantity <= 0) {
+            cart.getItems().remove(item);
+        } else {
+            item.setQuantity(quantity);
+        }
+        return toDto(cartRepository.save(cart));
+    }
 }
