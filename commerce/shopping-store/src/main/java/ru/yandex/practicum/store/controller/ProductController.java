@@ -47,11 +47,11 @@ public class ProductController implements ShoppingStoreApi {
     }
 
     @Override
-    public boolean setProductQuantityState(UUID productId, QuantityState quantityState) {
+    public void setProductQuantityState(UUID productId, QuantityState quantityState) {
         SetProductQuantityStateRequest request = new SetProductQuantityStateRequest();
         request.setProductId(productId);
         request.setQuantityState(quantityState);
-        return productService.setProductQuantityState(request);
+        productService.setProductQuantityState(request);
     }
 
     private Sort parseSort(String[] sortArray) {
