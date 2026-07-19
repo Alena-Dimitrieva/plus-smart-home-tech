@@ -63,7 +63,7 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
-                    <mainClass>package ru.yandex.practicum.cart.CartApplication</mainClass>
+                    <mainClass>ru.yandex.practicum.cart.CartApplication</mainClass>
                 </configuration>
                 <executions>
                     <execution>
