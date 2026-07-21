@@ -1,13 +1,18 @@
 package ru.yandex.practicum.api;
 
-import ru.yandex.practicum.dto.AddressDto;
-import ru.yandex.practicum.dto.AvailabilityResponse;
-import ru.yandex.practicum.dto.CartDto;
-import ru.yandex.practicum.dto.WarehouseProductDto;
+import org.springframework.web.bind.annotation.*;
+import ru.yandex.practicum.dto.*;
 
 public interface WarehouseApi {
-    AvailabilityResponse checkAvailability(CartDto cart);
+    @PutMapping("/api/v1/warehouse")
+    void newProductInWarehouse(@RequestBody NewProductInWarehouseRequest request);
+
+    @PostMapping("/api/v1/warehouse/check")
+    BookedProductsDto checkProductQuantityEnoughForShoppingCart(@RequestBody ShoppingCartDto cart);
+
+    @PostMapping("/api/v1/warehouse/add")
+    void addProductToWarehouse(@RequestBody AddProductToWarehouseRequest request);
+
+    @GetMapping("/api/v1/warehouse/address")
     AddressDto getWarehouseAddress();
-    WarehouseProductDto addProduct(WarehouseProductDto product);
-    WarehouseProductDto addProductAlternative(WarehouseProductDto product);
 }

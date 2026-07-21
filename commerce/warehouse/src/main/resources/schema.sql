@@ -1,9 +1,9 @@
 CREATE TABLE IF NOT EXISTS warehouse_products (
     product_id UUID PRIMARY KEY,
-    quantity INT NOT NULL DEFAULT 0,
-    width DECIMAL(10, 2) NOT NULL,
-    height DECIMAL(10, 2) NOT NULL,
-    depth DECIMAL(10, 2) NOT NULL,
-    weight DECIMAL(10, 2) NOT NULL,
+    quantity BIGINT NOT NULL DEFAULT 0,
+    width DOUBLE PRECISION NOT NULL,
+    height DOUBLE PRECISION NOT NULL,
+    depth DOUBLE PRECISION NOT NULL,
+    weight DOUBLE PRECISION NOT NULL,
     fragile BOOLEAN NOT NULL DEFAULT FALSE
 );

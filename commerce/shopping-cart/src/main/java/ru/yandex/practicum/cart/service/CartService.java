@@ -3,17 +3,12 @@ package ru.yandex.practicum.cart.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.yandex.practicum.dto.AvailabilityResponse;
-import ru.yandex.practicum.dto.CartDto;
-import ru.yandex.practicum.dto.CartItemDto;
+import ru.yandex.practicum.dto.*;
 import ru.yandex.practicum.feign.WarehouseFeignClient;
 import ru.yandex.practicum.cart.entity.Cart;
 import ru.yandex.practicum.cart.entity.CartItem;
-import ru.yandex.practicum.cart.exception.NotFoundException;
 import ru.yandex.practicum.cart.repository.CartRepository;
-
-import java.util.UUID;
-import java.util.stream.Collectors;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -21,97 +16,92 @@ public class CartService {
     private final CartRepository cartRepository;
     private final WarehouseFeignClient warehouseClient;
 
-    public CartDto getCart(String username) {
-        Cart cart = cartRepository.findByUsername(username)
-                .orElseThrow(() -> new NotFoundException("Cart not found for user: " + username));
+    public ShoppingCartDto getCart(String username) {
+        Cart cart = cartRepository.findByUsername(username).orElseGet(() -> createCart(username));
         return toDto(cart);
     }
 
     @Transactional
-    public CartDto addItem(String username, UUID productId, int quantity) {
+    public ShoppingCartDto addProducts(String username, Map<UUID, Long> products) {
         Cart cart = getOrCreateCart(username);
-        if (!cart.isActive()) {
-            throw new IllegalStateException("Cart is deactivated");
+        if (!cart.isActive()) throw new NotAuthorizedUserException();
+        ShoppingCartDto dto = toDto(cart);
+        for (Map.Entry<UUID, Long> entry : products.entrySet()) {
+            dto.getProducts().merge(entry.getKey(), entry.getValue(), Long::sum);
         }
-
-        CartDto cartDto = toDto(cart);
-        AvailabilityResponse response = warehouseClient.checkAvailability(cartDto);
-        if (!response.isAvailable() && response.getMissingProductIds().contains(productId)) {
-            throw new IllegalArgumentException("Product " + productId + " is not available in required quantity");
+        warehouseClient.checkProductQuantityEnoughForShoppingCart(dto);
+        for (Map.Entry<UUID, Long> entry : products.entrySet()) {
+            addOrUpdateItem(cart, entry.getKey(), entry.getValue());
         }
+        cartRepository.save(cart);
+        return toDto(cart);
+    }
 
-        CartItem existing = cart.getItems().stream()
-                .filter(item -> item.getProductId().equals(productId))
-                .findFirst().orElse(null);
-        if (existing != null) {
-            existing.setQuantity(existing.getQuantity() + quantity);
+    @Transactional
+    public ShoppingCartDto changeQuantity(String username, ChangeProductQuantityRequest request) {
+        Cart cart = getOrCreateCart(username);
+        if (!cart.isActive()) throw new NotAuthorizedUserException();
+        CartItem item = cart.getItems().stream()
+                .filter(i -> i.getProductId().equals(request.getProductId()))
+                .findFirst().orElseThrow(NoProductsInShoppingCartException::new);
+        if (request.getNewQuantity() == 0) {
+            cart.getItems().remove(item);
         } else {
-            CartItem newItem = new CartItem();
-            newItem.setProductId(productId);
-            newItem.setQuantity(quantity);
-            newItem.setCart(cart);
-            cart.getItems().add(newItem);
+            item.setQuantity((int) request.getNewQuantity());
         }
-        Cart saved = cartRepository.save(cart);
-        return toDto(saved);
+        cartRepository.save(cart);
+        return toDto(cart);
     }
 
     @Transactional
-    public CartDto removeItem(String username, UUID productId) {
-        Cart cart = cartRepository.findByUsername(username)
-                .orElseThrow(() -> new NotFoundException("Cart not found for user: " + username));
-        cart.getItems().removeIf(item -> item.getProductId().equals(productId));
-        return toDto(cartRepository.save(cart));
+    public ShoppingCartDto removeProducts(String username, List<UUID> productIds) {
+        Cart cart = getOrCreateCart(username);
+        if (!cart.isActive()) throw new NotAuthorizedUserException();
+        cart.getItems().removeIf(item -> productIds.contains(item.getProductId()));
+        cartRepository.save(cart);
+        return toDto(cart);
     }
 
     @Transactional
-    public boolean deactivateCart(String username) {
-        Cart cart = cartRepository.findByUsername(username)
-                .orElseThrow(() -> new NotFoundException("Cart not found for user: " + username));
+    public void deactivateCart(String username) {
+        Cart cart = getOrCreateCart(username);
         cart.setActive(false);
         cartRepository.save(cart);
-        return true;
     }
 
     private Cart getOrCreateCart(String username) {
-        return cartRepository.findByUsername(username)
-                .orElseGet(() -> {
-                    Cart newCart = new Cart();
-                    newCart.setUsername(username);
-                    newCart.setActive(true);
-                    return cartRepository.save(newCart);
-                });
+        return cartRepository.findByUsername(username).orElseGet(() -> createCart(username));
     }
 
-    private CartDto toDto(Cart cart) {
-        CartDto dto = new CartDto();
-        dto.setUsername(cart.getUsername());
-        dto.setActive(cart.isActive());
-        dto.setItems(cart.getItems().stream().map(item -> {
-            CartItemDto itemDto = new CartItemDto();
-            itemDto.setProductId(item.getProductId());
-            itemDto.setQuantity(item.getQuantity());
-            return itemDto;
-        }).collect(Collectors.toList()));
-        return dto;
+    private Cart createCart(String username) {
+        Cart c = new Cart();
+        c.setUsername(username);
+        c.setActive(true);
+        return cartRepository.save(c);
     }
 
-    @Transactional
-    public CartDto changeQuantity(String username, UUID productId, int quantity) {
-        Cart cart = cartRepository.findByUsername(username)
-                .orElseThrow(() -> new NotFoundException("Cart not found for user: " + username));
-        if (!cart.isActive()) {
-            throw new IllegalStateException("Cart is deactivated");
-        }
-        CartItem item = cart.getItems().stream()
-                .filter(i -> i.getProductId().equals(productId))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Product not in cart"));
-        if (quantity <= 0) {
-            cart.getItems().remove(item);
+    private void addOrUpdateItem(Cart cart, UUID productId, long quantity) {
+        CartItem existing = cart.getItems().stream()
+                .filter(i -> i.getProductId().equals(productId)).findFirst().orElse(null);
+        if (existing != null) {
+            existing.setQuantity((int) (existing.getQuantity() + quantity));
         } else {
-            item.setQuantity(quantity);
+            CartItem item = new CartItem();
+            item.setProductId(productId);
+            item.setQuantity((int) quantity);
+            item.setCart(cart);
+            cart.getItems().add(item);
         }
-        return toDto(cartRepository.save(cart));
+    }
+
+    private ShoppingCartDto toDto(Cart cart) {
+        ShoppingCartDto dto = new ShoppingCartDto();
+        dto.setShoppingCartId(UUID.randomUUID());
+        Map<UUID, Long> products = new HashMap<>();
+        for (CartItem item : cart.getItems()) {
+            products.put(item.getProductId(), (long) item.getQuantity());
+        }
+        dto.setProducts(products);
+        return dto;
     }
 }

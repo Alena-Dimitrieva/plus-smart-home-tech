@@ -1,47 +1,56 @@
 package ru.yandex.practicum.cart.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.api.ShoppingCartApi;
-import ru.yandex.practicum.dto.CartDto;
-import ru.yandex.practicum.dto.CartItemAddRequest;
+import ru.yandex.practicum.dto.*;
 import ru.yandex.practicum.cart.service.CartService;
 
-import java.util.UUID;
+import java.util.*;
 
 @RestController
-@RequestMapping("/api/v1/shopping-cart")
 @RequiredArgsConstructor
 public class CartController implements ShoppingCartApi {
-    private final CartService cartService;
+
+    private final CartService service;
 
     @Override
-    @GetMapping
-    public CartDto getCart(@RequestParam String username) {
-        return cartService.getCart(username);
+    @GetMapping("/api/v1/shopping-cart")
+    public ShoppingCartDto getShoppingCart(@RequestParam String username) {
+        return service.getCart(username);
     }
 
     @Override
-    @PutMapping
-    public CartDto addItem(@RequestParam String username, @RequestBody CartItemAddRequest request) {
-        return cartService.addItem(username, request.getProductId(), request.getQuantity());
+    @PutMapping("/api/v1/shopping-cart")
+    public ShoppingCartDto addProductToShoppingCart(
+            @RequestParam String username,
+            @RequestBody @Valid Map<UUID, Long> products
+    ) {
+        return service.addProducts(username, products);
     }
 
     @Override
-    @PostMapping("/change-quantity")
-    public CartDto changeQuantity(@RequestParam String username, @RequestParam UUID productId, @RequestParam int quantity) {
-        return cartService.changeQuantity(username, productId, quantity); // если такого метода нет – добавьте
+    @DeleteMapping("/api/v1/shopping-cart")
+    public void deactivateCurrentShoppingCart(@RequestParam String username) {
+        service.deactivateCart(username);
     }
 
     @Override
-    @PostMapping("/remove")
-    public CartDto removeItem(@RequestParam String username, @RequestParam UUID productId) {
-        return cartService.removeItem(username, productId);
+    @PostMapping("/api/v1/shopping-cart/remove")
+    public ShoppingCartDto removeFromShoppingCart(
+            @RequestParam String username,
+            @RequestBody List<UUID> productIds
+    ) {
+        return service.removeProducts(username, productIds);
     }
 
     @Override
-    @DeleteMapping
-    public boolean deactivateCart(@RequestParam String username) {
-        return cartService.deactivateCart(username);
+    @PostMapping("/api/v1/shopping-cart/change-quantity")
+    public ShoppingCartDto changeProductQuantity(
+            @RequestParam String username,
+            @RequestBody @Valid ChangeProductQuantityRequest request
+    ) {
+        return service.changeQuantity(username, request);
     }
 }

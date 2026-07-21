@@ -1,14 +1,27 @@
 package ru.yandex.practicum.api;
 
-import ru.yandex.practicum.dto.CartDto;
-import ru.yandex.practicum.dto.CartItemAddRequest;
-
+import org.springframework.web.bind.annotation.*;
+import ru.yandex.practicum.dto.*;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public interface ShoppingCartApi {
-    CartDto getCart(String username);
-    CartDto addItem(String username, CartItemAddRequest request);
-    CartDto changeQuantity(String username, UUID productId, int quantity);
-    CartDto removeItem(String username, UUID productId);
-    boolean deactivateCart(String username);
+    @GetMapping("/api/v1/shopping-cart")
+    ShoppingCartDto getShoppingCart(@RequestParam String username);
+
+    @PutMapping("/api/v1/shopping-cart")
+    ShoppingCartDto addProductToShoppingCart(@RequestParam String username,
+                                             @RequestBody Map<UUID, Long> products);
+
+    @DeleteMapping("/api/v1/shopping-cart")
+    void deactivateCurrentShoppingCart(@RequestParam String username);
+
+    @PostMapping("/api/v1/shopping-cart/remove")
+    ShoppingCartDto removeFromShoppingCart(@RequestParam String username,
+                                           @RequestBody List<UUID> productIds);
+
+    @PostMapping("/api/v1/shopping-cart/change-quantity")
+    ShoppingCartDto changeProductQuantity(@RequestParam String username,
+                                          @RequestBody ChangeProductQuantityRequest request);
 }

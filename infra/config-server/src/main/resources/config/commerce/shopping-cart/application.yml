@@ -1,28 +1,22 @@
-server:
-  port: 0
-
 spring:
   application:
     name: shopping-cart
   datasource:
-    url: jdbc:postgresql://localhost:5432/shopping_cart
+    url: jdbc:postgresql://localhost:5432/smart_home
     username: postgres
     password: postgres
     driver-class-name: org.postgresql.Driver
-  sql:
-    init:
-      mode: always
-      schema-locations: classpath:schema.sql
   jpa:
     hibernate:
       ddl-auto: none
     show-sql: true
     database-platform: org.hibernate.dialect.PostgreSQLDialect
-    defer-datasource-initialization: true
-    properties:
-      hibernate:
-        format_sql: true
-
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+server:
+  port: 0
 eureka:
   client:
     serviceUrl:
@@ -30,7 +24,20 @@ eureka:
   instance:
     prefer-ip-address: true
     instance-id: ${spring.application.name}:${random.int}
-
+# Дополнительные настройки Circuit Breaker
+resilience4j:
+  circuitbreaker:
+    instances:
+      warehouse:
+        sliding-window-size: 50
+        minimum-number-of-calls: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 5
+  timelimiter:
+    instances:
+      warehouse:
+        timeout-duration: 5s
 logging:
   level:
     ru.yandex.practicum: DEBUG
