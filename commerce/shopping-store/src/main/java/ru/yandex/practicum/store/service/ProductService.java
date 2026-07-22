@@ -32,6 +32,28 @@ public class ProductService {
         dto.setFirst(page.isFirst());
         dto.setLast(page.isLast());
         dto.setEmpty(page.isEmpty());
+        dto.setNumberOfElements(page.getNumberOfElements());
+
+        dto.setSort(page.getSort().stream()
+                .map(order -> {
+                    PageProductDto.SortObject sortObj = new PageProductDto.SortObject();
+                    sortObj.setProperty(order.getProperty());
+                    sortObj.setDirection(order.getDirection().name());
+                    sortObj.setAscending(order.isAscending());
+                    sortObj.setIgnoreCase(order.isIgnoreCase());
+                    sortObj.setNullHandling(order.getNullHandling().name());
+                    return sortObj;
+                }).collect(Collectors.toList()));
+
+        PageProductDto.PageableObject pageableObj = new PageProductDto.PageableObject();
+        pageableObj.setPageNumber(page.getNumber());
+        pageableObj.setPageSize(page.getSize());
+        pageableObj.setOffset(page.getPageable().getOffset());
+        pageableObj.setSort(dto.getSort());
+        pageableObj.setPaged(page.getPageable().isPaged());
+        pageableObj.setUnpaged(page.getPageable().isUnpaged());
+        dto.setPageable(pageableObj);
+
         return dto;
     }
 
@@ -54,7 +76,7 @@ public class ProductService {
                 .description(dto.getDescription())
                 .imageSrc(dto.getImageSrc())
                 .quantityState(dto.getQuantityState())
-                .productState(ProductState.ACTIVE)
+                .productState(dto.getProductState() != null ? dto.getProductState() : ProductState.ACTIVE)
                 .productCategory(dto.getProductCategory())
                 .price(dto.getPrice())
                 .build();
