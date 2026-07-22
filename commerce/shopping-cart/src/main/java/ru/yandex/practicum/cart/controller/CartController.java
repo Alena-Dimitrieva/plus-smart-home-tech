@@ -1,6 +1,5 @@
 package ru.yandex.practicum.cart.controller;
 
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.api.ShoppingCartApi;
@@ -25,7 +24,7 @@ public class CartController implements ShoppingCartApi {
     @PutMapping("/api/v1/shopping-cart")
     public ShoppingCartDto addProductToShoppingCart(
             @RequestParam String username,
-            @RequestBody @Valid Map<UUID, Long> products
+            @RequestBody Map<UUID, Long> products
     ) {
         return service.addProducts(username, products);
     }
@@ -49,7 +48,7 @@ public class CartController implements ShoppingCartApi {
     @PostMapping("/api/v1/shopping-cart/change-quantity")
     public ShoppingCartDto changeProductQuantity(
             @RequestParam String username,
-            @RequestBody @Valid ChangeProductQuantityRequest request
+            @RequestBody ChangeProductQuantityRequest request
     ) {
         return service.changeQuantity(username, request);
     }

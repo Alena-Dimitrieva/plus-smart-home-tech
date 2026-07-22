@@ -29,11 +29,11 @@ resilience4j:
   circuitbreaker:
     instances:
       warehouse:
-        sliding-window-size: 50
-        minimum-number-of-calls: 10
+        sliding-window-size: 100
+        minimum-number-of-calls: 20
         failure-rate-threshold: 50
-        wait-duration-in-open-state: 10s
-        permitted-number-of-calls-in-half-open-state: 5
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 10
   timelimiter:
     instances:
       warehouse:

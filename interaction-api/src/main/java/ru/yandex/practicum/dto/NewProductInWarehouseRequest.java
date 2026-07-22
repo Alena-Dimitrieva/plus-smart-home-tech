@@ -17,6 +17,7 @@ public class NewProductInWarehouseRequest {
     @NotNull(message = "dimension не должен быть null")
     private DimensionDto dimension;
 
+    @NotNull
     @Min(value = 1, message = "weight должен быть > 0")
     private double weight;
 }

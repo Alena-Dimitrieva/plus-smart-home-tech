@@ -1,5 +1,6 @@
 package ru.yandex.practicum.cart.exception;
 
+import feign.FeignException;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -16,11 +17,23 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(NotAuthorizedUserException.class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
-    public void handleNotAuthorized() {}
+    public NotAuthorizedUserException handleNotAuthorized(NotAuthorizedUserException ex) {
+        return ex;
+    }
 
     @ExceptionHandler(NoProductsInShoppingCartException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public void handleNoProducts() {}
+    public NoProductsInShoppingCartException handleNoProducts(NoProductsInShoppingCartException ex) {
+        return ex;
+    }
+
+    @ExceptionHandler(FeignException.class)
+    @ResponseStatus(HttpStatus.BAD_GATEWAY)
+    public Map<String, String> handleFeignException(FeignException ex) {
+        Map<String, String> error = new HashMap<>();
+        error.put("error", "Сервис склада временно недоступен");
+        return error;
+    }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)

@@ -2,23 +2,26 @@ package ru.yandex.practicum.store.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.api.ShoppingStoreApi;
 import ru.yandex.practicum.dto.*;
 import ru.yandex.practicum.model.ProductCategory;
+import ru.yandex.practicum.model.QuantityState;
 import ru.yandex.practicum.store.service.ProductService;
+import ru.yandex.practicum.store.util.SortUtils;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+
+import java.util.*;
 
 @RestController
 @RequiredArgsConstructor
+@Slf4j
 public class ProductController implements ShoppingStoreApi {
 
     private final ProductService service;
+    private final SortUtils sortUtils;
 
     @Override
     @GetMapping("/api/v1/shopping-store")
@@ -28,8 +31,7 @@ public class ProductController implements ShoppingStoreApi {
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "productName,asc") String[] sort
     ) {
-        Sort sortObj = parseSort(sort);
-        return service.getProducts(category, PageRequest.of(page, size, sortObj));
+        return service.getProducts(category, PageRequest.of(page, size, sortUtils.parseSort(sort)));
     }
 
     @Override
@@ -40,42 +42,37 @@ public class ProductController implements ShoppingStoreApi {
 
     @Override
     @PutMapping("/api/v1/shopping-store")
-    public ProductDto createNewProduct(@RequestBody @Valid ProductDto productDto) {
+    public ProductDto createNewProduct(@Valid @RequestBody ProductDto productDto) {
+        log.info("Создание товара с переданным ID: {}", productDto.getProductId());
         return service.createProduct(productDto);
     }
 
     @Override
     @PostMapping("/api/v1/shopping-store")
-    public ProductDto updateProduct(@RequestBody @Valid ProductDto productDto) {
+    public ProductDto updateProduct(@Valid @RequestBody ProductDto productDto) {
         return service.updateProduct(productDto);
     }
 
     @Override
     @PostMapping("/api/v1/shopping-store/removeProductFromStore")
-    public boolean removeProductFromStore(@RequestBody UUID productId) {
+    public boolean removeProductFromStore(@RequestBody Map<String, UUID> payload) {
+        UUID productId = payload.get("productId");
+        if (productId == null) {
+            throw new IllegalArgumentException("productId must be provided");
+        }
         return service.removeProductFromStore(productId);
     }
 
     @Override
     @PostMapping("/api/v1/shopping-store/quantityState")
-    public boolean setProductQuantityState(@RequestBody @Valid SetProductQuantityStateRequest request) {
+    public boolean setProductQuantityState(
+            @RequestParam UUID productId,
+            @RequestParam QuantityState quantityState
+    ) {
+        log.info("Запрос на обновление статуса для ID: {}, новый статус: {}", productId, quantityState);
+        SetProductQuantityStateRequest request = new SetProductQuantityStateRequest();
+        request.setProductId(productId);
+        request.setQuantityState(quantityState);
         return service.setProductQuantityState(request);
-    }
-
-    private Sort parseSort(String[] sortArray) {
-        if (sortArray == null || sortArray.length == 0) {
-            return Sort.unsorted();
-        }
-        List<Sort.Order> orders = new ArrayList<>();
-        for (String s : sortArray) {
-            String[] parts = s.split(",");
-            String property = parts[0].trim();
-            if (property.isEmpty()) continue;
-            Sort.Direction direction = (parts.length > 1 && "desc".equalsIgnoreCase(parts[1].trim()))
-                    ? Sort.Direction.DESC
-                    : Sort.Direction.ASC;
-            orders.add(new Sort.Order(direction, property));
-        }
-        return orders.isEmpty() ? Sort.unsorted() : Sort.by(orders);
     }
 }
