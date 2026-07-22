@@ -55,8 +55,7 @@ public class ProductController implements ShoppingStoreApi {
 
     @Override
     @PostMapping("/api/v1/shopping-store/removeProductFromStore")
-    public boolean removeProductFromStore(@RequestBody Map<String, UUID> payload) {
-        UUID productId = payload.get("productId");
+    public boolean removeProductFromStore(@RequestBody UUID productId) {
         if (productId == null) {
             throw new IllegalArgumentException("productId must be provided");
         }

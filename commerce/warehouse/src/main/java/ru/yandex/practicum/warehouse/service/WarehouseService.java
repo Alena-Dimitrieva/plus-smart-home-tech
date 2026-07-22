@@ -1,15 +1,19 @@
 package ru.yandex.practicum.warehouse.service;
 
+import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.dto.*;
 import ru.yandex.practicum.feign.ShoppingStoreFeignClient;
+import ru.yandex.practicum.model.ProductCategory;
+import ru.yandex.practicum.model.ProductState;
 import ru.yandex.practicum.model.QuantityState;
 import ru.yandex.practicum.warehouse.entity.WarehouseProduct;
 import ru.yandex.practicum.warehouse.repository.WarehouseProductRepository;
 
+import java.math.BigDecimal;
 import java.security.SecureRandom;
 import java.util.Map;
 import java.util.UUID;
@@ -100,13 +104,41 @@ public class WarehouseService {
         WarehouseProduct wp = repository.findById(productId)
                 .orElseThrow(() -> new NoSpecifiedProductInWarehouseException("Product not found"));
         long q = wp.getQuantity();
-        QuantityState state;
-        if (q == 0) state = QuantityState.ENDED;
-        else if (q < 10) state = QuantityState.FEW;
-        else if (q <= 100) state = QuantityState.ENOUGH;
-        else state = QuantityState.MANY;
+        QuantityState state = determineState(q);
 
-        storeClient.setProductQuantityState(productId, state);  // вызов с двумя параметрами
+        try {
+            storeClient.setProductQuantityState(productId, state);
+        } catch (FeignException.NotFound e) {
+            // Товара нет в витрине – создаём его автоматически
+            log.warn("Товар {} не найден в витрине. Создаём автоматически.", productId);
+            createProductInStore(productId, state);
+            // Повторно обновляем статус (теперь товар существует)
+            storeClient.setProductQuantityState(productId, state);
+        } catch (FeignException e) {
+            log.error("Ошибка при обновлении статуса в витрине: {}", e.getMessage(), e);
+            throw new RuntimeException("Не удалось обновить статус товара в витрине", e);
+        }
+
         log.info("Обновлён статус количества для товара {}: {}", productId, state);
+    }
+
+    private QuantityState determineState(long q) {
+        if (q == 0) return QuantityState.ENDED;
+        if (q < 10) return QuantityState.FEW;
+        if (q <= 100) return QuantityState.ENOUGH;
+        return QuantityState.MANY;
+    }
+
+    private void createProductInStore(UUID productId, QuantityState state) {
+        ProductDto productDto = new ProductDto();
+        productDto.setProductId(productId);
+        productDto.setProductName("Auto-created product: " + productId);
+        productDto.setDescription("Created automatically by warehouse");
+        productDto.setQuantityState(state);
+        productDto.setProductState(ProductState.ACTIVE);
+        productDto.setProductCategory(ProductCategory.CONTROL); // категория по умолчанию
+        productDto.setPrice(BigDecimal.ONE);
+        storeClient.createNewProduct(productDto);
+        log.info("Товар {} создан в витрине", productId);
     }
 }

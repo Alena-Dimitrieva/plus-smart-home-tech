@@ -26,7 +26,7 @@ public interface ShoppingStoreApi {
     ProductDto updateProduct(@RequestBody ProductDto productDto);
 
     @PostMapping("/api/v1/shopping-store/removeProductFromStore")
-    boolean removeProductFromStore(@RequestBody Map<String, UUID> payload);
+    boolean removeProductFromStore(@RequestBody UUID productId);
 
     @PostMapping("/api/v1/shopping-store/quantityState")
     public boolean setProductQuantityState(
