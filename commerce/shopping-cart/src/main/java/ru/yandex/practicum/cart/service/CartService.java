@@ -8,6 +8,7 @@ import ru.yandex.practicum.feign.WarehouseFeignClient;
 import ru.yandex.practicum.cart.entity.Cart;
 import ru.yandex.practicum.cart.entity.CartItem;
 import ru.yandex.practicum.cart.repository.CartRepository;
+import ru.yandex.practicum.cart.mapper.CartMapper;
 
 import java.util.*;
 
@@ -38,7 +39,7 @@ public class CartService {
     public ShoppingCartDto getCart(String username) {
         validateUsername(username);
         Cart cart = getActiveCartOrCreate(username);
-        return toDto(cart);
+        return CartMapper.toDto(cart);
     }
 
     @Transactional
@@ -52,7 +53,7 @@ public class CartService {
             throw new NotAuthorizedUserException("Cart is deactivated");
         }
 
-        ShoppingCartDto dto = toDto(cart);
+        ShoppingCartDto dto = CartMapper.toDto(cart);
         for (Map.Entry<UUID, Long> entry : products.entrySet()) {
             dto.getProducts().merge(entry.getKey(), entry.getValue(), Long::sum);
         }
@@ -61,8 +62,7 @@ public class CartService {
         for (Map.Entry<UUID, Long> entry : products.entrySet()) {
             addOrUpdateItem(cart, entry.getKey(), entry.getValue());
         }
-        cartRepository.save(cart);
-        return toDto(cart);
+        return CartMapper.toDto(cart);
     }
 
     @Transactional
@@ -86,8 +86,7 @@ public class CartService {
         } else {
             item.setQuantity((int) request.getNewQuantity());
         }
-        cartRepository.save(cart);
-        return toDto(cart);
+        return CartMapper.toDto(cart);
     }
 
     @Transactional
@@ -104,8 +103,7 @@ public class CartService {
         if (beforeSize == cart.getItems().size()) {
             throw new NoProductsInShoppingCartException("None of the specified products were found in the cart");
         }
-        cartRepository.save(cart);
-        return toDto(cart);
+        return CartMapper.toDto(cart);
     }
 
     @Transactional
@@ -114,7 +112,6 @@ public class CartService {
         Cart cart = cartRepository.findByUsernameAndActiveTrue(username)
                 .orElseThrow(() -> new NotAuthorizedUserException("No active cart found for user"));
         cart.setActive(false);
-        cartRepository.save(cart);
     }
 
     private void addOrUpdateItem(Cart cart, UUID productId, long quantity) {
@@ -129,16 +126,5 @@ public class CartService {
             item.setCart(cart);
             cart.getItems().add(item);
         }
-    }
-
-    private ShoppingCartDto toDto(Cart cart) {
-        ShoppingCartDto dto = new ShoppingCartDto();
-        dto.setShoppingCartId(cart.getId());
-        Map<UUID, Long> products = new HashMap<>();
-        for (CartItem item : cart.getItems()) {
-            products.put(item.getProductId(), (long) item.getQuantity());
-        }
-        dto.setProducts(products);
-        return dto;
     }
 }

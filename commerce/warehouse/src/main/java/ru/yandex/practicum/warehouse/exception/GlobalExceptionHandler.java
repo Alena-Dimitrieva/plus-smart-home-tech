@@ -9,6 +9,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import ru.yandex.practicum.dto.ErrorResponse;
 import ru.yandex.practicum.dto.*;
 
 import java.util.HashMap;
@@ -20,51 +21,44 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(SpecifiedProductAlreadyInWarehouseException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public SpecifiedProductAlreadyInWarehouseException handleProductAlreadyInWarehouse(SpecifiedProductAlreadyInWarehouseException ex) {
+    public ErrorResponse handleProductAlreadyInWarehouse(SpecifiedProductAlreadyInWarehouseException ex) {
         log.error("Ошибка: товар уже существует на складе", ex);
-        return ex;
+        return new ErrorResponse("Bad Request", ex.getMessage(), HttpStatus.BAD_REQUEST.value());
     }
 
     @ExceptionHandler(ProductInShoppingCartLowQuantityInWarehouse.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ProductInShoppingCartLowQuantityInWarehouse handleLowQuantity(ProductInShoppingCartLowQuantityInWarehouse ex) {
+    public ErrorResponse handleLowQuantity(ProductInShoppingCartLowQuantityInWarehouse ex) {
         log.error("Ошибка: недостаточно товара на складе", ex);
-        return ex;
+        return new ErrorResponse("Bad Request", ex.getMessage(), HttpStatus.BAD_REQUEST.value());
     }
 
     @ExceptionHandler(NoSpecifiedProductInWarehouseException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public NoSpecifiedProductInWarehouseException handleNoProductInWarehouse(NoSpecifiedProductInWarehouseException ex) {
+    public ErrorResponse handleNoProductInWarehouse(NoSpecifiedProductInWarehouseException ex) {
         log.error("Ошибка: товар не найден на складе", ex);
-        return ex;
+        return new ErrorResponse("Bad Request", ex.getMessage(), HttpStatus.BAD_REQUEST.value());
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map<String, String> handleIllegalArgument(IllegalArgumentException ex) {
+    public ErrorResponse handleIllegalArgument(IllegalArgumentException ex) {
         log.error("Ошибка валидации: {}", ex.getMessage(), ex);
-        Map<String, String> error = new HashMap<>();
-        error.put("error", ex.getMessage());
-        return error;
+        return new ErrorResponse("Bad Request", ex.getMessage(), HttpStatus.BAD_REQUEST.value());
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map<String, String> handleMessageNotReadable(HttpMessageNotReadableException ex) {
+    public ErrorResponse handleMessageNotReadable(HttpMessageNotReadableException ex) {
         log.error("Ошибка десериализации JSON: {}", ex.getMessage(), ex);
-        Map<String, String> error = new HashMap<>();
-        error.put("error", "Некорректный формат данных: " + ex.getMessage());
-        return error;
+        return new ErrorResponse("Bad Request", "Invalid request body: " + ex.getMessage(), HttpStatus.BAD_REQUEST.value());
     }
 
     @ExceptionHandler(FeignException.class)
     @ResponseStatus(HttpStatus.BAD_GATEWAY)
-    public Map<String, String> handleFeignException(FeignException ex) {
+    public ErrorResponse handleFeignException(FeignException ex) {
         log.error("Ошибка при вызове внешнего сервиса (shopping-store): {}", ex.getMessage(), ex);
-        Map<String, String> error = new HashMap<>();
-        error.put("error", "Сервис витрины временно недоступен. Повторите попытку позже.");
-        error.put("detail", ex.getMessage());
-        return error;
+        return new ErrorResponse("Service Unavailable", "Сервис витрины временно недоступен", HttpStatus.BAD_GATEWAY.value());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -82,11 +76,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public Map<String, String> handleAllExceptions(Exception ex) {
+    public ErrorResponse handleAllExceptions(Exception ex) {
         log.error("Необработанное исключение: {}", ex.getMessage(), ex);
-        Map<String, String> error = new HashMap<>();
-        error.put("error", "Внутренняя ошибка сервера: " + ex.getMessage());
-        error.put("type", ex.getClass().getName());
-        return error;
+        return new ErrorResponse("Internal Server Error", "Произошла непредвиденная ошибка", HttpStatus.INTERNAL_SERVER_ERROR.value());
     }
 }

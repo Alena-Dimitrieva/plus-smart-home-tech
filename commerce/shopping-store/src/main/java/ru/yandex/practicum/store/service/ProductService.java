@@ -8,12 +8,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.dto.*;
 import ru.yandex.practicum.model.ProductCategory;
-import ru.yandex.practicum.model.ProductState;
 import ru.yandex.practicum.store.entity.Product;
+import ru.yandex.practicum.store.exception.ProductNotFoundException;
+import ru.yandex.practicum.store.mapper.ProductMapper;
 import ru.yandex.practicum.store.repository.ProductRepository;
 
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -22,44 +22,14 @@ public class ProductService {
     private final ProductRepository repository;
 
     public PageProductDto getProducts(ProductCategory category, Pageable pageable) {
-        Page<Product> page = repository.findByProductCategoryAndProductState(category, ProductState.ACTIVE, pageable);
-        PageProductDto dto = new PageProductDto();
-        dto.setContent(page.getContent().stream().map(this::toDto).collect(Collectors.toList()));
-        dto.setTotalPages(page.getTotalPages());
-        dto.setTotalElements(page.getTotalElements());
-        dto.setNumber(page.getNumber());
-        dto.setSize(page.getSize());
-        dto.setFirst(page.isFirst());
-        dto.setLast(page.isLast());
-        dto.setEmpty(page.isEmpty());
-        dto.setNumberOfElements(page.getNumberOfElements());
-
-        dto.setSort(page.getSort().stream()
-                .map(order -> {
-                    PageProductDto.SortObject sortObj = new PageProductDto.SortObject();
-                    sortObj.setProperty(order.getProperty());
-                    sortObj.setDirection(order.getDirection().name());
-                    sortObj.setAscending(order.isAscending());
-                    sortObj.setIgnoreCase(order.isIgnoreCase());
-                    sortObj.setNullHandling(order.getNullHandling().name());
-                    return sortObj;
-                }).collect(Collectors.toList()));
-
-        PageProductDto.PageableObject pageableObj = new PageProductDto.PageableObject();
-        pageableObj.setPageNumber(page.getNumber());
-        pageableObj.setPageSize(page.getSize());
-        pageableObj.setOffset(page.getPageable().getOffset());
-        pageableObj.setSort(dto.getSort());
-        pageableObj.setPaged(page.getPageable().isPaged());
-        pageableObj.setUnpaged(page.getPageable().isUnpaged());
-        dto.setPageable(pageableObj);
-
-        return dto;
+        Page<Product> page = repository.findByProductCategoryAndProductState(category, ru.yandex.practicum.model.ProductState.ACTIVE, pageable);
+        return ProductMapper.toPageDto(page);
     }
 
     public ProductDto getProduct(UUID id) {
-        Product p = repository.findById(id).orElseThrow(() -> new ProductNotFoundException("Product not found with id: " + id));
-        return toDto(p);
+        Product product = repository.findById(id)
+                .orElseThrow(() -> new ProductNotFoundException("Product not found with id: " + id));
+        return ProductMapper.toDto(product);
     }
 
     @Transactional
@@ -70,17 +40,9 @@ public class ProductService {
         } else if (repository.existsById(productId)) {
             throw new IllegalArgumentException("Product with this ID already exists: " + productId);
         }
-        Product p = Product.builder()
-                .productId(productId)
-                .productName(dto.getProductName())
-                .description(dto.getDescription())
-                .imageSrc(dto.getImageSrc())
-                .quantityState(dto.getQuantityState())
-                .productState(dto.getProductState() != null ? dto.getProductState() : ProductState.ACTIVE)
-                .productCategory(dto.getProductCategory())
-                .price(dto.getPrice())
-                .build();
-        return toDto(repository.save(p));
+        Product product = ProductMapper.toEntity(dto);
+        product.setProductId(productId);
+        return ProductMapper.toDto(repository.save(product));
     }
 
     @Transactional
@@ -97,14 +59,15 @@ public class ProductService {
         existing.setProductState(dto.getProductState());
         existing.setProductCategory(dto.getProductCategory());
         existing.setPrice(dto.getPrice());
-        return toDto(repository.save(existing));
+        return ProductMapper.toDto(existing);
     }
 
     @Transactional
     public boolean removeProductFromStore(UUID id) {
-        Product p = repository.findById(id).orElseThrow(() -> new ProductNotFoundException("Product not found with id: " + id));
-        p.setProductState(ProductState.DEACTIVATE);
-        repository.save(p);
+        Product product = repository.findById(id)
+                .orElseThrow(() -> new ProductNotFoundException("Product not found with id: " + id));
+        product.setProductState(ru.yandex.practicum.model.ProductState.DEACTIVATE);
+        repository.save(product);
         log.info("Товар {} деактивирован", id);
         return true;
     }
@@ -118,18 +81,5 @@ public class ProductService {
         repository.saveAndFlush(product);
         log.info("Статус обновлён для ID: {}", request.getProductId());
         return true;
-    }
-
-    private ProductDto toDto(Product p) {
-        ProductDto dto = new ProductDto();
-        dto.setProductId(p.getProductId());
-        dto.setProductName(p.getProductName());
-        dto.setDescription(p.getDescription());
-        dto.setImageSrc(p.getImageSrc());
-        dto.setQuantityState(p.getQuantityState());
-        dto.setProductState(p.getProductState());
-        dto.setProductCategory(p.getProductCategory());
-        dto.setPrice(p.getPrice());
-        return dto;
     }
 }

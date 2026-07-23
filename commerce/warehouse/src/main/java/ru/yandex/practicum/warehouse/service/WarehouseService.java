@@ -11,6 +11,7 @@ import ru.yandex.practicum.model.ProductCategory;
 import ru.yandex.practicum.model.ProductState;
 import ru.yandex.practicum.model.QuantityState;
 import ru.yandex.practicum.warehouse.entity.WarehouseProduct;
+import ru.yandex.practicum.warehouse.mapper.WarehouseMapper;
 import ru.yandex.practicum.warehouse.repository.WarehouseProductRepository;
 
 import java.math.BigDecimal;
@@ -47,14 +48,7 @@ public class WarehouseService {
             throw new SpecifiedProductAlreadyInWarehouseException("Product already exists in warehouse");
         }
 
-        WarehouseProduct wp = new WarehouseProduct();
-        wp.setProductId(request.getProductId());
-        wp.setQuantity(0);
-        wp.setWidth(request.getDimension().getWidth());
-        wp.setHeight(request.getDimension().getHeight());
-        wp.setDepth(request.getDimension().getDepth());
-        wp.setWeight(request.getWeight());
-        wp.setFragile(request.getFragile() != null && request.getFragile());
+        WarehouseProduct wp = WarehouseMapper.toEntity(request);
         repository.save(wp);
 
         updateQuantityState(request.getProductId());
@@ -109,10 +103,8 @@ public class WarehouseService {
         try {
             storeClient.setProductQuantityState(productId, state);
         } catch (FeignException.NotFound e) {
-            // Товара нет в витрине – создаём его автоматически
             log.warn("Товар {} не найден в витрине. Создаём автоматически.", productId);
             createProductInStore(productId, state);
-            // Повторно обновляем статус (теперь товар существует)
             storeClient.setProductQuantityState(productId, state);
         } catch (FeignException e) {
             log.error("Ошибка при обновлении статуса в витрине: {}", e.getMessage(), e);
@@ -136,7 +128,7 @@ public class WarehouseService {
         productDto.setDescription("Created automatically by warehouse");
         productDto.setQuantityState(state);
         productDto.setProductState(ProductState.ACTIVE);
-        productDto.setProductCategory(ProductCategory.CONTROL); // категория по умолчанию
+        productDto.setProductCategory(ProductCategory.CONTROL);
         productDto.setPrice(BigDecimal.ONE);
         storeClient.createNewProduct(productDto);
         log.info("Товар {} создан в витрине", productId);

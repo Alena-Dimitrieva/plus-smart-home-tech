@@ -15,7 +15,10 @@ public class Cart {
     @Column(name = "cart_id")
     private UUID id = UUID.randomUUID();
 
+    @Column(name = "username", nullable = false)
     private String username;
+
+    @Column(name = "active")
     private boolean active = true;
 
     @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL, orphanRemoval = true)

@@ -7,7 +7,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import ru.yandex.practicum.dto.ProductNotFoundException;
+import ru.yandex.practicum.dto.ErrorResponse;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -18,18 +18,16 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ProductNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ProductNotFoundException handleProductNotFound(ProductNotFoundException ex) {
+    public ErrorResponse handleProductNotFound(ProductNotFoundException ex) {
         log.error("Товар не найден: {}", ex.getMessage(), ex);
-        return ex;
+        return new ErrorResponse("Not Found", ex.getMessage(), HttpStatus.NOT_FOUND.value());
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map<String, String> handleIllegalArgument(IllegalArgumentException ex) {
+    public ErrorResponse handleIllegalArgument(IllegalArgumentException ex) {
         log.error("Ошибка валидации: {}", ex.getMessage(), ex);
-        Map<String, String> error = new HashMap<>();
-        error.put("error", ex.getMessage());
-        return error;
+        return new ErrorResponse("Bad Request", ex.getMessage(), HttpStatus.BAD_REQUEST.value());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -44,20 +42,15 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map<String, String> handleMessageNotReadable(HttpMessageNotReadableException ex) {
+    public ErrorResponse handleMessageNotReadable(HttpMessageNotReadableException ex) {
         log.error("Ошибка десериализации JSON: {}", ex.getMessage(), ex);
-        Map<String, String> error = new HashMap<>();
-        error.put("error", "Invalid request body: " + ex.getMessage());
-        return error;
+        return new ErrorResponse("Bad Request", "Invalid request body: " + ex.getMessage(), HttpStatus.BAD_REQUEST.value());
     }
 
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public Map<String, String> handleAllExceptions(Exception ex) {
+    public ErrorResponse handleAllExceptions(Exception ex) {
         log.error("Внутренняя ошибка сервера: {}", ex.getMessage(), ex);
-        Map<String, String> error = new HashMap<>();
-        error.put("error", "Internal server error: " + ex.getMessage());
-        error.put("type", ex.getClass().getName());
-        return error;
+        return new ErrorResponse("Internal Server Error", "Произошла непредвиденная ошибка", HttpStatus.INTERNAL_SERVER_ERROR.value());
     }
 }
