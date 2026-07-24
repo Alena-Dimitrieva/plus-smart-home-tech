@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: shopping-store
+  datasource:
+    url: jdbc:postgresql://localhost:5432/smart_home
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+server:
+  port: 0
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${random.int}
+logging:
+  level:
+    ru.yandex.practicum: DEBUG
+    org.springframework.web: INFO
+    org.hibernate.SQL: DEBUG
