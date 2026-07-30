@@ -1,0 +1,20 @@
+CREATE TABLE IF NOT EXISTS orders (
+    id UUID PRIMARY KEY,
+    shopping_cart_id UUID,
+    products JSONB,
+    payment_id UUID,
+    delivery_id UUID,
+    state VARCHAR(50),
+    delivery_weight DOUBLE PRECISION,
+    delivery_volume DOUBLE PRECISION,
+    fragile BOOLEAN,
+    total_price DOUBLE PRECISION,
+    delivery_price DOUBLE PRECISION,
+    product_price DOUBLE PRECISION,
+    country VARCHAR(100),
+    city VARCHAR(100),
+    street VARCHAR(200),
+    house VARCHAR(50),
+    flat VARCHAR(50),
+    username VARCHAR(255)
+);
