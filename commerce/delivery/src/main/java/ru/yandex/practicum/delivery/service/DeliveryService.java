@@ -4,8 +4,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.yandex.practicum.delivery.entity.AddressEmbeddable;
 import ru.yandex.practicum.delivery.entity.Delivery;
+import ru.yandex.practicum.delivery.mapper.DeliveryMapper;
 import ru.yandex.practicum.delivery.repository.DeliveryRepository;
 import ru.yandex.practicum.dto.AddressDto;
 import ru.yandex.practicum.dto.DeliveryDto;
@@ -23,6 +23,7 @@ public class DeliveryService {
     private final DeliveryRepository deliveryRepository;
     private final WarehouseFeignClient warehouseClient;
     private final OrderFeignClient orderClient;
+    private final DeliveryMapper deliveryMapper;
     private final double baseRate;
     private final double address1Coeff;
     private final double address2Coeff;
@@ -34,6 +35,7 @@ public class DeliveryService {
     public DeliveryService(DeliveryRepository deliveryRepository,
                            WarehouseFeignClient warehouseClient,
                            OrderFeignClient orderClient,
+                           DeliveryMapper deliveryMapper,
                            @Value("${delivery.base-rate:5.0}") double baseRate,
                            @Value("${delivery.address-coefficient.ADDRESS_1:1}") double address1Coeff,
                            @Value("${delivery.address-coefficient.ADDRESS_2:2}") double address2Coeff,
@@ -44,6 +46,7 @@ public class DeliveryService {
         this.deliveryRepository = deliveryRepository;
         this.warehouseClient = warehouseClient;
         this.orderClient = orderClient;
+        this.deliveryMapper = deliveryMapper;
         this.baseRate = baseRate;
         this.address1Coeff = address1Coeff;
         this.address2Coeff = address2Coeff;
@@ -58,17 +61,9 @@ public class DeliveryService {
         UUID orderId = deliveryDto.getOrderId();
         OrderDto order = orderClient.getOrderById(orderId);
 
-        Delivery delivery = new Delivery();
-        delivery.setOrderId(orderId);
-        delivery.setFromAddress(toEmbeddable(deliveryDto.getFromAddress()));
-        delivery.setToAddress(toEmbeddable(deliveryDto.getToAddress()));
-        delivery.setWeight(order.getDeliveryWeight());
-        delivery.setVolume(order.getDeliveryVolume());
-        delivery.setFragile(order.isFragile());
-        delivery.setStatus(DeliveryState.CREATED);
+        Delivery delivery = deliveryMapper.toEntity(deliveryDto, order);
         delivery = deliveryRepository.save(delivery);
-
-        return toDto(delivery);
+        return deliveryMapper.toDto(delivery);
     }
 
     public double deliveryCost(OrderDto order) {
@@ -103,7 +98,6 @@ public class DeliveryService {
         Delivery delivery = deliveryRepository.findByOrderId(orderId)
                 .orElseThrow(() -> new RuntimeException("Delivery not found for order " + orderId));
         delivery.setStatus(DeliveryState.IN_PROGRESS);
-        deliveryRepository.save(delivery);
 
         ShippedToDeliveryRequest request = new ShippedToDeliveryRequest();
         request.setOrderId(orderId);
@@ -116,7 +110,6 @@ public class DeliveryService {
         Delivery delivery = deliveryRepository.findByOrderId(orderId)
                 .orElseThrow(() -> new RuntimeException("Delivery not found for order " + orderId));
         delivery.setStatus(DeliveryState.DELIVERED);
-        deliveryRepository.save(delivery);
         orderClient.deliverySuccess(orderId);
     }
 
@@ -125,39 +118,6 @@ public class DeliveryService {
         Delivery delivery = deliveryRepository.findByOrderId(orderId)
                 .orElseThrow(() -> new RuntimeException("Delivery not found for order " + orderId));
         delivery.setStatus(DeliveryState.FAILED);
-        deliveryRepository.save(delivery);
         orderClient.deliveryFailed(orderId);
-    }
-
-    private AddressEmbeddable toEmbeddable(AddressDto dto) {
-        if (dto == null) return null;
-        AddressEmbeddable emb = new AddressEmbeddable();
-        emb.setCountry(dto.getCountry());
-        emb.setCity(dto.getCity());
-        emb.setStreet(dto.getStreet());
-        emb.setHouse(dto.getHouse());
-        emb.setFlat(dto.getFlat());
-        return emb;
-    }
-
-    private AddressDto toAddressDto(AddressEmbeddable emb) {
-        if (emb == null) return null;
-        AddressDto dto = new AddressDto();
-        dto.setCountry(emb.getCountry());
-        dto.setCity(emb.getCity());
-        dto.setStreet(emb.getStreet());
-        dto.setHouse(emb.getHouse());
-        dto.setFlat(emb.getFlat());
-        return dto;
-    }
-
-    private DeliveryDto toDto(Delivery delivery) {
-        DeliveryDto dto = new DeliveryDto();
-        dto.setDeliveryId(delivery.getId());
-        dto.setOrderId(delivery.getOrderId());
-        dto.setFromAddress(toAddressDto(delivery.getFromAddress()));
-        dto.setToAddress(toAddressDto(delivery.getToAddress()));
-        dto.setDeliveryState(delivery.getStatus());
-        return dto;
     }
 }

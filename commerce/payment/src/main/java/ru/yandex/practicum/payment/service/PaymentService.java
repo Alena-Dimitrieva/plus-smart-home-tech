@@ -1,6 +1,5 @@
 package ru.yandex.practicum.payment.service;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -12,21 +11,32 @@ import ru.yandex.practicum.feign.OrderFeignClient;
 import ru.yandex.practicum.feign.ShoppingStoreFeignClient;
 import ru.yandex.practicum.model.PaymentStatus;
 import ru.yandex.practicum.payment.entity.Payment;
+import ru.yandex.practicum.payment.mapper.PaymentMapper;
 import ru.yandex.practicum.payment.repository.PaymentRepository;
 
 import java.util.Map;
 import java.util.UUID;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class PaymentService {
     private final PaymentRepository paymentRepository;
     private final ShoppingStoreFeignClient storeClient;
     private final OrderFeignClient orderClient;
+    private final PaymentMapper paymentMapper;
+    private final double taxRate;
 
-    @Value("${payment.tax-rate:0.1}")
-    private double taxRate;
+    public PaymentService(PaymentRepository paymentRepository,
+                          ShoppingStoreFeignClient storeClient,
+                          OrderFeignClient orderClient,
+                          PaymentMapper paymentMapper,
+                          @Value("${payment.tax-rate:0.1}") double taxRate) {
+        this.paymentRepository = paymentRepository;
+        this.storeClient = storeClient;
+        this.orderClient = orderClient;
+        this.paymentMapper = paymentMapper;
+        this.taxRate = taxRate;
+    }
 
     public double productCost(OrderDto order) {
         double sum = 0;
@@ -50,21 +60,9 @@ public class PaymentService {
         double tax = productCost * taxRate;
         double total = productCost + tax + deliveryCost;
 
-        Payment payment = new Payment();
-        payment.setOrderId(order.getOrderId());
-        payment.setProductCost(productCost);
-        payment.setDeliveryCost(deliveryCost);
-        payment.setTax(tax);
-        payment.setTotalCost(total);
-        payment.setStatus(PaymentStatus.PENDING);
+        Payment payment = paymentMapper.toEntity(order, productCost, deliveryCost, tax, total);
         payment = paymentRepository.save(payment);
-
-        PaymentDto dto = new PaymentDto();
-        dto.setPaymentId(payment.getId());
-        dto.setTotalPayment(total);
-        dto.setDeliveryTotal(deliveryCost);
-        dto.setFeeTotal(tax);
-        return dto;
+        return paymentMapper.toDto(payment);
     }
 
     @Transactional
@@ -72,7 +70,6 @@ public class PaymentService {
         Payment payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new RuntimeException("Payment not found"));
         payment.setStatus(PaymentStatus.SUCCESS);
-        paymentRepository.save(payment);
         orderClient.paymentSuccess(payment.getOrderId());
     }
 
@@ -81,7 +78,6 @@ public class PaymentService {
         Payment payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new RuntimeException("Payment not found"));
         payment.setStatus(PaymentStatus.FAILED);
-        paymentRepository.save(payment);
         orderClient.paymentFailed(payment.getOrderId());
     }
 }

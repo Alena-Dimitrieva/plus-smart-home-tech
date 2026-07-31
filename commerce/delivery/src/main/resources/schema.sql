@@ -16,3 +16,5 @@ CREATE TABLE IF NOT EXISTS deliveries (
     fragile BOOLEAN,
     status VARCHAR(50)
 );
+
+CREATE INDEX idx_deliveries_order_id ON deliveries(order_id);
