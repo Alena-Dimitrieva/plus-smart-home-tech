@@ -1,0 +1,56 @@
+server:
+  port: 8080
+
+spring:
+  cloud:
+    gateway:
+      routes:
+
+        - id: shopping-store
+          uri: lb://shopping-store
+          predicates:
+            - Path=/api/v1/shopping-store/**
+          filters:
+            - StripPrefix=0
+
+        - id: shopping-cart
+          uri: lb://shopping-cart
+          predicates:
+            - Path=/api/v1/shopping-cart/**
+          filters:
+            - StripPrefix=0
+
+        - id: warehouse
+          uri: lb://warehouse
+          predicates:
+            - Path=/api/v1/warehouse/**
+          filters:
+            - StripPrefix=0
+
+        - id: order-service
+          uri: lb://order
+          predicates:
+            - Path=/api/v1/order/**
+          filters:
+            - StripPrefix=0
+
+        - id: payment-service
+          uri: lb://payment
+          predicates:
+            - Path=/api/v1/payment/**
+          filters:
+            - StripPrefix=0
+
+        - id: delivery-service
+          uri: lb://delivery
+          predicates:
+            - Path=/api/v1/delivery/**
+          filters:
+            - StripPrefix=0
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true

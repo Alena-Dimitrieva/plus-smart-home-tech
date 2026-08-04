@@ -1,0 +1,31 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/smart_home
+    username: postgres
+    password: postgres
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+server:
+  port: 0
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${random.int}
+delivery:
+  base-rate: 5.0
+  address-coefficient:
+    ADDRESS_1: 1
+    ADDRESS_2: 2
+  fragile-multiplier: 0.2
+  weight-multiplier: 0.3
+  volume-multiplier: 0.2
+  street-different-multiplier: 0.2

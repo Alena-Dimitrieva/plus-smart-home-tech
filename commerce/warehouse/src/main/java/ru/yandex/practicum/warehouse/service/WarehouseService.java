@@ -10,12 +10,15 @@ import ru.yandex.practicum.feign.ShoppingStoreFeignClient;
 import ru.yandex.practicum.model.ProductCategory;
 import ru.yandex.practicum.model.ProductState;
 import ru.yandex.practicum.model.QuantityState;
+import ru.yandex.practicum.warehouse.entity.OrderBooking;
 import ru.yandex.practicum.warehouse.entity.WarehouseProduct;
 import ru.yandex.practicum.warehouse.mapper.WarehouseMapper;
+import ru.yandex.practicum.warehouse.repository.OrderBookingRepository;
 import ru.yandex.practicum.warehouse.repository.WarehouseProductRepository;
 
 import java.math.BigDecimal;
 import java.security.SecureRandom;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -25,6 +28,7 @@ import java.util.UUID;
 public class WarehouseService {
     private final WarehouseProductRepository repository;
     private final ShoppingStoreFeignClient storeClient;
+    private final OrderBookingRepository orderBookingRepository;
 
     private static final String[] ADDRESSES = {"ADDRESS_1", "ADDRESS_2"};
     private final String currentAddress = ADDRESSES[new SecureRandom().nextInt(ADDRESSES.length)];
@@ -92,6 +96,74 @@ public class WarehouseService {
         dto.setDeliveryVolume(totalVolume);
         dto.setFragile(hasFragile);
         return dto;
+    }
+
+    @Transactional
+    public BookedProductsDto assemblyProductsForOrder(AssemblyProductsForOrderRequest request) {
+        UUID orderId = request.getOrderId();
+        Map<UUID, Long> products = request.getProducts();
+        double totalWeight = 0, totalVolume = 0;
+        boolean hasFragile = false;
+
+        for (Map.Entry<UUID, Long> entry : products.entrySet()) {
+            UUID pid = entry.getKey();
+            long requested = entry.getValue();
+            WarehouseProduct wp = repository.findById(pid)
+                    .orElseThrow(() -> new NoSpecifiedProductInWarehouseException("Product not found: " + pid));
+            if (wp.getQuantity() < requested) {
+                throw new ProductInShoppingCartLowQuantityInWarehouse(
+                        "Not enough quantity for product " + pid + ". Available: " + wp.getQuantity() + ", requested: " + requested
+                );
+            }
+            wp.setQuantity(wp.getQuantity() - (int) requested);
+            repository.save(wp);
+
+            OrderBooking booking = new OrderBooking();
+            booking.setOrderId(orderId);
+            booking.setProductId(pid);
+            booking.setQuantity(requested);
+            booking.setDeliveryId(null);
+            orderBookingRepository.save(booking);
+
+            totalWeight += wp.getWeight() * requested;
+            totalVolume += wp.getWidth() * wp.getHeight() * wp.getDepth() * requested;
+            if (wp.isFragile()) hasFragile = true;
+
+            updateQuantityState(pid);
+        }
+
+        BookedProductsDto dto = new BookedProductsDto();
+        dto.setDeliveryWeight(totalWeight);
+        dto.setDeliveryVolume(totalVolume);
+        dto.setFragile(hasFragile);
+        return dto;
+    }
+
+    @Transactional
+    public void shippedToDelivery(ShippedToDeliveryRequest request) {
+        UUID orderId = request.getOrderId();
+        UUID deliveryId = request.getDeliveryId();
+        List<OrderBooking> bookings = orderBookingRepository.findByOrderId(orderId);
+        if (bookings.isEmpty()) {
+            throw new RuntimeException("No bookings found for order " + orderId);
+        }
+        for (OrderBooking booking : bookings) {
+            booking.setDeliveryId(deliveryId);
+            orderBookingRepository.save(booking);
+        }
+    }
+
+    @Transactional
+    public void acceptReturn(Map<UUID, Long> products) {
+        for (Map.Entry<UUID, Long> entry : products.entrySet()) {
+            UUID pid = entry.getKey();
+            long quantity = entry.getValue();
+            WarehouseProduct wp = repository.findById(pid)
+                    .orElseThrow(() -> new NoSpecifiedProductInWarehouseException("Product not found: " + pid));
+            wp.setQuantity(wp.getQuantity() + (int) quantity);
+            repository.save(wp);
+            updateQuantityState(pid);
+        }
     }
 
     private void updateQuantityState(UUID productId) {
